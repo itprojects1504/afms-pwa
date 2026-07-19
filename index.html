@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ATS Check</title>
+<meta name="theme-color" content="#1a1512">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #16130f;
+    --panel: #1f1a14;
+    --panel-2: #262019;
+    --border: #362d22;
+    --text: #f2ece2;
+    --text-dim: #a99d8a;
+    --accent: #e8871e;
+    --accent-dim: #6b4a1f;
+    --good: #5ba86a;
+    --bad: #c9573f;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0) 0;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  header { margin-bottom: 22px; }
+  header .eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 4px;
+  }
+  header h1 {
+    font-size: 22px; margin: 0; font-weight: 700; letter-spacing: -0.01em;
+  }
+  header p { color: var(--text-dim); font-size: 13px; margin: 6px 0 0; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); margin: 0 0 12px; font-weight: 600;
+  }
+
+  .date-row { display: flex; gap: 10px; }
+  .field { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; color: var(--text-dim); }
+  input[type="date"], input[type="text"] {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 15px;
+    width: 100%;
+    font-family: inherit;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+  input:focus { outline: none; border-color: var(--accent); }
+
+  .centre-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .centre-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 4px 4px 12px;
+  }
+  .centre-row span {
+    flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .centre-row button {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 18px; padding: 8px 10px; cursor: pointer; line-height: 1;
+  }
+  .centre-row button:active { color: var(--bad); }
+
+  .add-row { display: flex; gap: 8px; }
+  .add-row input { flex: 1; }
+  .btn-small {
+    background: var(--accent-dim);
+    color: var(--text);
+    border: none;
+    border-radius: 8px;
+    padding: 0 16px;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .empty-hint { color: var(--text-dim); font-size: 13px; padding: 4px 0 8px; }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #1a1206;
+    border: none;
+    border-radius: var(--radius);
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  .btn-primary:disabled { background: var(--accent-dim); color: var(--text-dim); }
+
+  .btn-secondary {
+    width: 100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .status {
+    font-size: 13px; color: var(--text-dim); text-align: center;
+    padding: 10px 0; min-height: 20px;
+  }
+  .status.error { color: var(--bad); }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--accent-dim); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    margin-right: 8px; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .centre-cell { max-width: 140px; word-break: break-word; }
+
+  .meta-line {
+    font-size: 12px; color: var(--text-dim); margin-top: 10px;
+    display: flex; justify-content: space-between;
+  }
+
+  .no-results { text-align: center; color: var(--text-dim); font-size: 14px; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">AFMS · services.parivahan.gov.in</div>
+    <h1>ATS Check Status</h1>
+    <p>Appointment &amp; test data for your saved ATS centres.</p>
+  </header>
+
+  <div class="card">
+    <h2>Date range</h2>
+    <div class="date-row">
+      <div class="field">
+        <label for="fromDate">From date</label>
+        <input type="date" id="fromDate">
+      </div>
+      <div class="field">
+        <label for="toDate">To date</label>
+        <input type="date" id="toDate">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>ATS centres</h2>
+    <div class="centre-list" id="centreList"></div>
+    <div id="emptyHint" class="empty-hint" style="display:none;">No centres saved yet — add one below.</div>
+    <div class="add-row">
+      <input type="text" id="newCentre" placeholder="ATS Centre Name (as on AFMS)">
+      <button class="btn-small" id="addCentreBtn">+</button>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="checkBtn">Check Status</button>
+  <button class="btn-secondary" id="downloadBtn" style="display:none;">Download Excel</button>
+  <div class="status" id="statusLine"></div>
+
+  <div class="card" id="resultsCard" style="display:none;">
+    <h2>Results</h2>
+    <div id="resultsBody"></div>
+    <div class="meta-line" id="metaLine"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ---- CONFIG ----
+// Set this to your deployed Render backend URL, e.g.
+// "https://afms-checker.onrender.com"
+const API_BASE = localStorage.getItem("afms_api_base") || "";
+
+// ---- State persistence ----
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+function loadState() {
+  const raw = localStorage.getItem("afms_state");
+  let centres = [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.centres)) centres = parsed.centres;
+    } catch (e) {}
+  }
+  // Dates are intentionally NOT restored from storage — they should always
+  // default to today when the app is opened, regardless of what was last used.
+  return { fromDate: todayStr(), toDate: todayStr(), centres };
+}
+function saveState(state) {
+  // Only the centre list needs to persist across sessions.
+  localStorage.setItem("afms_state", JSON.stringify({ centres: state.centres }));
+}
+
+let state = loadState();
+let lastResults = null;
+
+const fromDateEl = document.getElementById("fromDate");
+const toDateEl = document.getElementById("toDate");
+const centreListEl = document.getElementById("centreList");
+const emptyHintEl = document.getElementById("emptyHint");
+const newCentreEl = document.getElementById("newCentre");
+const checkBtn = document.getElementById("checkBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const statusLine = document.getElementById("statusLine");
+const resultsCard = document.getElementById("resultsCard");
+const resultsBody = document.getElementById("resultsBody");
+const metaLine = document.getElementById("metaLine");
+
+fromDateEl.value = state.fromDate || todayStr();
+toDateEl.value = state.toDate || todayStr();
+
+fromDateEl.addEventListener("change", () => { state.fromDate = fromDateEl.value; saveState(state); });
+toDateEl.addEventListener("change", () => { state.toDate = toDateEl.value; saveState(state); });
+
+function renderCentres() {
+  centreListEl.innerHTML = "";
+  emptyHintEl.style.display = state.centres.length ? "none" : "block";
+  state.centres.forEach((name, idx) => {
+    const row = document.createElement("div");
+    row.className = "centre-row";
+    row.innerHTML = `<span>${escapeHtml(name)}</span><button data-idx="${idx}">&times;</button>`;
+    centreListEl.appendChild(row);
+  });
+  centreListEl.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      state.centres.splice(idx, 1);
+      saveState(state);
+      renderCentres();
+    });
+  });
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById("addCentreBtn").addEventListener("click", addCentre);
+newCentreEl.addEventListener("keydown", (e) => { if (e.key === "Enter") addCentre(); });
+
+function addCentre() {
+  const val = newCentreEl.value.trim();
+  if (!val) return;
+  state.centres.push(val);
+  saveState(state);
+  newCentreEl.value = "";
+  renderCentres();
+}
+
+renderCentres();
+
+// ---- Check Status ----
+checkBtn.addEventListener("click", async () => {
+  if (!API_BASE) {
+    statusLine.textContent = "API URL not set. Open this app once with ?api=https://your-backend-url then reload.";
+    statusLine.className = "status error";
+    return;
+  }
+  if (!state.centres.length) {
+    statusLine.textContent = "Add at least one ATS centre name first.";
+    statusLine.className = "status error";
+    return;
+  }
+
+  checkBtn.disabled = true;
+  resultsCard.style.display = "none";
+  downloadBtn.style.display = "none";
+  statusLine.className = "status";
+  statusLine.innerHTML = '<span class="spinner"></span>Checking AFMS — this can take 1-2 minutes on a cold start…';
+
+  try {
+    const resp = await fetch(`${API_BASE}/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from_date: fromDateEl.value,
+        to_date: toDateEl.value,
+        centre_names: state.centres
+      })
+    });
+    const data = await resp.json();
+
+    if (!data.ok) {
+      statusLine.textContent = "Failed: " + (data.error || "Unknown error");
+      statusLine.className = "status error";
+      return;
+    }
+
+    lastResults = data;
+    renderResults(data);
+    statusLine.textContent = "Done.";
+    statusLine.className = "status";
+    downloadBtn.style.display = "block";
+  } catch (err) {
+    statusLine.textContent = "Network error: " + err.message;
+    statusLine.className = "status error";
+  } finally {
+    checkBtn.disabled = false;
+  }
+});
+
+function renderResults(data) {
+  resultsCard.style.display = "block";
+  const rows = data.matched_rows || [];
+  if (!rows.length) {
+    resultsBody.innerHTML = '<div class="no-results">No matching ATS centre found in this date range.</div>';
+  } else {
+    let html = "<table><thead><tr>" +
+      "<th>Centre</th><th>Dist.</th><th class='num'>Appt.</th><th class='num'>Done</th><th class='num'>Pending</th>" +
+      "</tr></thead><tbody>";
+    rows.forEach(r => {
+      html += `<tr>
+        <td class="centre-cell">${escapeHtml(r.ats_centre_name || "")}</td>
+        <td>${escapeHtml(r.district_name || "")}</td>
+        <td class="num">${escapeHtml(r.appointment || "0")}</td>
+        <td class="num">${escapeHtml(r.test_done || "0")}</td>
+        <td class="num">${escapeHtml(r.test_to_be_done || "0")}</td>
+      </tr>`;
+    });
+    html += "</tbody></table>";
+    resultsBody.innerHTML = html;
+  }
+  metaLine.textContent = `Pages scanned: ${data.pages_scanned} · Total rows read: ${data.total_rows_read}`;
+}
+
+// ---- Download Excel (client-side, no extra server call) ----
+downloadBtn.addEventListener("click", () => {
+  if (!lastResults) return;
+  const rows = lastResults.matched_rows.map(r => ({
+    "S.No": r.s_no,
+    "ATS Centre Name": r.ats_centre_name,
+    "State Name": r.state_name,
+    "District Name": r.district_name,
+    "Appointment": Number(r.appointment) || 0,
+    "Test Done": Number(r.test_done) || 0,
+    "Test to be Done": Number(r.test_to_be_done) || 0,
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "ATS Data");
+  const filename = `AFMS_Check_${lastResults.from_date}_to_${lastResults.to_date}.xlsx`;
+  XLSX.writeFile(wb, filename);
+});
+
+// ---- Allow setting the API base URL via ?api=... once, persisted after ----
+(function handleApiParam() {
+  const params = new URLSearchParams(window.location.search);
+  const apiParam = params.get("api");
+  if (apiParam) {
+    localStorage.setItem("afms_api_base", apiParam.replace(/\/$/, ""));
+    // Reload without the query string so it's not resent every time.
+    window.location.href = window.location.pathname;
+  }
+})();
+
+// ---- Service worker for installability / offline shell ----
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
