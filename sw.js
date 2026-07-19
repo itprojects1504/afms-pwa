@@ -1,4 +1,4 @@
-const CACHE_NAME = "ats-check-v1";
+const CACHE_NAME = "ats-check-v2";
 const SHELL_FILES = ["./index.html", "./manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -17,23 +17,24 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Network-first for the API (/check), cache-first for the app shell.
+// Network-first for everything same-origin (so app updates show up right
+// away); falls back to the cached copy only if the network request fails
+// (e.g. offline). The API call to the backend (different origin) is left
+// alone entirely.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-  if (event.request.method !== "GET") return; // let POST /check pass straight through
+  if (event.request.method !== "GET") return;
+  if (url.origin !== self.location.origin) return; // don't touch API calls
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((response) => {
-          if (response && response.ok && url.origin === self.location.origin) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(event.request, { cache: "no-store" })
+      .then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
